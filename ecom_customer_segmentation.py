@@ -11,7 +11,6 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import missingno as msno
 import warnings
 warnings.filterwarnings('ignore')
 from google.colab import files
@@ -159,7 +158,7 @@ cb_r2_score
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 
-kmeans = KMeans(n_clusters=4, random_state=42)
+kmeans = KMeans(n_clusters=3, random_state=42)
 clusters = kmeans.fit_predict(X)
 
 dataset['Cluster'] = clusters
@@ -175,6 +174,8 @@ plt.show()
 
 cluster_means = dataset.groupby('Cluster').mean()
 print(cluster_means)
+
+"""###Decision Tree Regression."""
 
 X = dataset[['Gender', 'Orders']]
 y = dataset['Orders']
@@ -200,3 +201,44 @@ mse_dt = mean_squared_error(y_test, y_pred_dt)
 
 print(f"Decision Tree Regression R2-Score: {r2_dt}")
 print(f"Decision Tree Regression MSE: {mse_dt}")
+
+"""###Cross-Validation
+
+####K-Fold
+"""
+
+from sklearn.model_selection import KFold
+def k_fold_validation(model, X, y, n_splits=5):
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=0)
+    r2_scores = []
+    mse_scores = []
+
+    for train_index, test_index in kf.split(X):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+
+        r2_scores.append(r2_score(y_test, y_pred))
+        mse_scores.append(mean_squared_error(y_test, y_pred))
+
+    return np.mean(r2_scores), np.mean(mse_scores)
+
+
+lr = LinearRegression()
+lr_r2, lr_mse = k_fold_validation(lr, X, y, n_splits=5)
+print(f"Linear Regression - Mean R2-Score: {lr_r2}")
+print(f"Linear Regression - Mean MSE: {lr_mse}")
+
+
+dt_regressor = DecisionTreeRegressor(random_state=0)
+dt_r2, dt_mse = k_fold_validation(dt_regressor, X, y, n_splits=5)
+print(f"Decision Tree Regression - Mean R2-Score: {dt_r2}")
+print(f"Decision Tree Regression - Mean MSE: {dt_mse}")
+
+
+svm = SVR()
+svm_r2, svm_mse = k_fold_validation(svm, X, y, n_splits=5)
+print(f"SVM Regression - Mean R2-Score: {svm_r2}")
+print(f"SVM Regression - Mean MSE: {svm_mse}")
