@@ -46,12 +46,6 @@ fl = (dataset.dtypes == 'float')
 fl_cols = list(fl[fl].index)
 print("Float variables:",len(fl_cols))
 
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.impute import SimpleImputer
-
-"""###Data Cleaning"""
-
 dataset.dropna(subset=['Gender'], inplace=True)
 dataset.fillna(0, inplace=True)
 
@@ -68,17 +62,11 @@ plt.title('Boxplot for Orders')
 plt.ylabel('Number of Orders')
 plt.show()
 
-Q1 = dataset['Orders'].quantile(0.25)
-Q3 = dataset['Orders'].quantile(0.75)
-IQR = Q3 - Q1
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.impute import SimpleImputer
 
-lower_bound = Q1 - 1.5 * IQR
-upper_bound = Q3 + 1.5 * IQR
-
-outliers = dataset[(dataset['Orders'] < lower_bound) | (dataset['Orders'] > upper_bound)]
-
-print("Outliers in 'Orders' column:")
-print(outliers)
+"""###Data Cleaning"""
 
 #Encoding categorical variables
 label_encoder = LabelEncoder()
@@ -125,11 +113,9 @@ linear_reg.fit(X_train, y_train)
 
 y_pred = linear_reg.predict(X_test)
 
-from sklearn.metrics import mean_absolute_percentage_error
 mse = mean_squared_error(y_test, y_pred)
 r2 = r2_score(y_test, y_pred)
 print(f'Linear Regression - Mean Squared Error: {mse}, R2 Score: {r2}')
-print(mean_absolute_percentage_error(y_test, y_pred))
 
 """####SVM"""
 
@@ -165,16 +151,15 @@ cb_model = CatBoostRegressor()
 cb_model.fit(X_train, y_train)
 preds = cb_model.predict(X_test)
 
-mse = mean_squared_error(y_test, y_pred)
 cb_r2_score = r2_score(y_test, preds)
-print(f'Random Forest - Mean Squared Error: {mse}, R2 Score: {cb_r2_score}')
+cb_r2_score
 
 """###Clustering for Customer Segmentation"""
 
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 
-kmeans = KMeans(n_clusters=5, random_state=42)
+kmeans = KMeans(n_clusters=4, random_state=42)
 clusters = kmeans.fit_predict(X)
 
 dataset['Cluster'] = clusters
@@ -186,7 +171,32 @@ plt.xlabel('Orders')
 plt.ylabel('Gender')
 plt.show()
 
-"""###Reporting and Segmentation"""
+"""###Reporting and Visualization"""
 
 cluster_means = dataset.groupby('Cluster').mean()
 print(cluster_means)
+
+X = dataset[['Gender', 'Orders']]
+y = dataset['Orders']
+
+print("Features and Target:")
+print(X)
+print(y)
+
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+
+dt_regressor = DecisionTreeRegressor(random_state=0)
+dt_regressor.fit(X_train, y_train)
+
+y_pred_dt = dt_regressor.predict(X_test)
+
+from sklearn.metrics import r2_score, mean_squared_error
+
+r2_dt = r2_score(y_test, y_pred_dt)
+mse_dt = mean_squared_error(y_test, y_pred_dt)
+
+print(f"Decision Tree Regression R2-Score: {r2_dt}")
+print(f"Decision Tree Regression MSE: {mse_dt}")
