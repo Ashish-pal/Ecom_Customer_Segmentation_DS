@@ -61,6 +61,13 @@ plt.title('Boxplot for Orders')
 plt.ylabel('Number of Orders')
 plt.show()
 
+plt.figure(figsize=(10, 6))
+plt.scatter(range(len(dataset['Orders'])), dataset['Orders'], alpha=0.5)
+plt.title('Scatter Plot for Orders')
+plt.xlabel('Customer Index')
+plt.ylabel('Number of Orders')
+plt.show()
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.impute import SimpleImputer
@@ -109,7 +116,6 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 
 linear_reg = LinearRegression()
 linear_reg.fit(X_train, y_train)
-
 y_pred = linear_reg.predict(X_test)
 
 mse = mean_squared_error(y_test, y_pred)
@@ -153,12 +159,62 @@ preds = cb_model.predict(X_test)
 cb_r2_score = r2_score(y_test, preds)
 cb_r2_score
 
-"""###Clustering for Customer Segmentation"""
+"""###Clustering for Customer Segmentation
+
+####PCA
+"""
+
+from sklearn.decomposition import PCA
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+
+print(f"Explained variance by PCA components: {pca.explained_variance_ratio_}")
 
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
+from sklearn.metrics import silhouette_score
+summ_squared_error = []
+for k in range(1, 11):
+    kmeans = KMeans(n_clusters=k, random_state=0)
+    kmeans.fit(X_pca)
+    summ_squared_error.append(kmeans.inertia_)
 
-kmeans = KMeans(n_clusters=3, random_state=42)
+plt.figure(figsize=(8, 5))
+plt.plot(range(1, 11), summ_squared_error, marker='o')
+plt.xlabel('Number of clusters')
+plt.ylabel('Sum Squared Errors')
+plt.title('Elbow Method for Optimal k')
+plt.show()
+
+silhouette_scores = []
+for k in range(2, 11):
+    kmeans = KMeans(n_clusters=k, random_state=0)
+    labels = kmeans.fit_predict(X_pca)
+    silhouette_scores.append(silhouette_score(X_pca, labels))
+
+plt.figure(figsize=(8, 5))
+plt.plot(range(2, 11), silhouette_scores, marker='o')
+plt.xlabel('Number of clusters')
+plt.ylabel('Silhouette Score')
+plt.title('Silhouette Scores for Different k')
+plt.show()
+
+kmeans_pca = KMeans(n_clusters=5, random_state=0)
+clusters = kmeans_pca.fit_predict(X_pca)
+dataset['Cluster'] = clusters
+
+plt.figure(figsize=(8, 5))
+plt.scatter(X_pca[:, 0], X_pca[:, 1], c=clusters, cmap='viridis')
+plt.xlabel('PCA Component 1')
+plt.ylabel('PCA Component 2')
+plt.title('Customer Segments (K-means Clustering)')
+plt.show()
+
+"""####KMeans without PCA"""
+
+kmeans = KMeans(n_clusters=5, random_state=42)
 clusters = kmeans.fit_predict(X)
 
 dataset['Cluster'] = clusters
@@ -229,16 +285,34 @@ def k_fold_validation(model, X, y, n_splits=5):
 lr = LinearRegression()
 lr_r2, lr_mse = k_fold_validation(lr, X, y, n_splits=5)
 print(f"Linear Regression - Mean R2-Score: {lr_r2}")
-print(f"Linear Regression - Mean MSE: {lr_mse}")
+print(f"Linear Regression - Mean MSE: {lr_mse} \n")
 
 
 dt_regressor = DecisionTreeRegressor(random_state=0)
 dt_r2, dt_mse = k_fold_validation(dt_regressor, X, y, n_splits=5)
 print(f"Decision Tree Regression - Mean R2-Score: {dt_r2}")
-print(f"Decision Tree Regression - Mean MSE: {dt_mse}")
+print(f"Decision Tree Regression - Mean MSE: {dt_mse} \n")
+
+
+rf_regressor = RandomForestRegressor(random_state=0)
+rf_r2, rf_mse = k_fold_validation(rf_regressor, X, y, n_splits=5)
+print(f"Random Forest Regression - Mean R2-Score: {rf_r2}")
+print(f"Random Forest Regression - Mean MSE: {rf_mse} \n")
 
 
 svm = SVR()
 svm_r2, svm_mse = k_fold_validation(svm, X, y, n_splits=5)
 print(f"SVM Regression - Mean R2-Score: {svm_r2}")
-print(f"SVM Regression - Mean MSE: {svm_mse}")
+print(f"SVM Regression - Mean MSE: {svm_mse} \n")
+
+
+kmeans_pca = KMeans()
+kmeans_pca_r2, kmeans_pca_mse = k_fold_validation(kmeans_pca, X, y, n_splits=5)
+print(f"Kmeans with PCA - Mean R2-Score: {svm_r2}")
+print(f"Kmeans with PCA - Mean MSE: {svm_mse} \n")
+
+
+kmeans_wpca = KMeans()
+kmeans_wpca_r2, kmeans_wpca_mse = k_fold_validation(kmeans_wpca, X, y, n_splits=5)
+print(f"Kmeans without PCA - Mean R2-Score: {svm_r2}")
+print(f"Kmeans without PCA - Mean MSE: {svm_mse}")
